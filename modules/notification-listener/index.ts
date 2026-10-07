@@ -1,5 +1,5 @@
 import { Platform } from 'react-native';
-import { requireOptionalNativeModule } from 'expo';
+import { requireOptionalNativeModule } from 'expo-modules-core';
 
 type EventSubscription = { remove(): void };
 

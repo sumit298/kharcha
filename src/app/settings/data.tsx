@@ -55,10 +55,22 @@ export default function DataScreen() {
     if (picked.canceled || !picked.assets[0]) return;
     const backup = parseBackup(new File(picked.assets[0].uri).textSync());
     const count = backup.tables.transactions?.length ?? 0;
-    await new Promise<void>((resolve) =>
+    await new Promise<void>((resolve, reject) =>
       Alert.alert('Restore backup?', `This replaces everything on this phone with the backup (${count} transactions).`, [
         { text: 'Cancel', style: 'cancel', onPress: () => resolve() },
-        { text: 'Restore', style: 'destructive', onPress: () => void write((db) => restoreBackup(db, backup)).then(() => resolve()) },
+        {
+          text: 'Restore',
+          style: 'destructive',
+          onPress: () =>
+            void write((db) => restoreBackup(db, backup))
+              .then(async () => {
+                await NotificationListener.clearQueue();
+                SmsReader.setLastSyncCursor(backup.exportedAt, 0);
+                SmsReader.setLastSyncCompletedAt(backup.exportedAt);
+                resolve();
+              })
+              .catch((error) => reject(error)),
+        },
       ]),
     );
   });
@@ -74,7 +86,9 @@ export default function DataScreen() {
             await deleteAllData(db);
             await NotificationListener.clearQueue();
             // Start the direct-SMS experiment from this moment; do not re-import older inbox rows.
-            SmsReader.setLastSyncAt(Date.now());
+            const resetAt = Date.now();
+            SmsReader.setLastSyncCursor(resetAt, 0);
+            SmsReader.setLastSyncCompletedAt(resetAt);
             await prepareDatabase(db);
           }).then(() => router.replace('/onboarding')),
       },

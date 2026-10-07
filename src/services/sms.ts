@@ -61,28 +61,37 @@ export function syncSmsInbox(): Promise<number> {
     if (!smsPermissionGranted()) return 0;
 
     const pipeline = getPipeline();
-    let since = SmsReader.getLastSyncAt();
-    if (!since) since = Date.now() - INITIAL_LOOKBACK_MS;
+    const cursor = SmsReader.getLastSyncCursor();
+    let since = cursor.at;
+    let sinceId = cursor.id;
+    if (!since) {
+      since = Date.now() - INITIAL_LOOKBACK_MS;
+      sinceId = 0;
+    }
 
     let imported = 0;
     let changed = false;
     for (;;) {
-      const rows = await SmsReader.readInbox(since, BATCH_SIZE);
+      const rows = await SmsReader.readInbox(since, sinceId, BATCH_SIZE);
       if (rows.length === 0) {
-        SmsReader.setLastSyncAt(Date.now());
+        // Advance past non-financial SMS too; otherwise every poll would rescan them forever.
+        SmsReader.setLastSyncCursor(Date.now(), 0);
         break;
       }
 
       for (const row of rows) {
         await pipeline.ingest(payloadFor(row));
-        since = Math.max(since, row.date);
-        SmsReader.setLastSyncAt(since);
+        if (row.date > since || (row.date === since && row.id > sinceId)) {
+          since = row.date;
+          sinceId = row.id;
+        }
+        SmsReader.setLastSyncCursor(since, sinceId);
         imported += 1;
         changed = true;
       }
-      if (rows.length < BATCH_SIZE) break;
     }
 
+    SmsReader.setLastSyncCompletedAt(Date.now());
     if (changed) bumpData();
     return imported;
   })().finally(() => {

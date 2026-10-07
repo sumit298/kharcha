@@ -25,20 +25,20 @@ export default function RootLayout() {
 
   useEffect(() => {
     if (!ready) return;
-    void syncSmsInbox();
+    void syncSmsInbox().catch(() => undefined);
     const appState = AppState.addEventListener('change', (state) => {
       if (state === 'active') {
         NotificationListener.requestRebind();
-        void syncNotifications();
-        void syncSmsInbox();
+        void syncNotifications().catch(() => undefined);
+        void syncSmsInbox().catch(() => undefined);
       }
     });
-    const smsPoll = setInterval(() => void syncSmsInbox(), 15 * 60_000);
+    const smsPoll = setInterval(() => void syncSmsInbox().catch(() => undefined), 15 * 60_000);
     const unsubscribe = NotificationListener.onQueueChanged(() => {
-      void syncNotifications();
-      void syncSmsInbox();
+      void syncNotifications().catch(() => undefined);
+      void syncSmsInbox().catch(() => undefined);
     });
-    const unsubscribeSms = SmsReader.onSmsChanged(() => void syncSmsInbox());
+    const unsubscribeSms = SmsReader.onSmsChanged(() => void syncSmsInbox().catch(() => undefined));
     return () => {
       appState.remove();
       clearInterval(smsPoll);

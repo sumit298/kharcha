@@ -7,7 +7,7 @@ import { Card, Divider, ListItem, Screen, T } from '@/components/ui';
 import type { IconName } from '@/components/ui';
 
 import { NotificationListener, isAvailable } from '../../../modules/notification-listener';
-import { SmsReader, isAvailable as smsReaderAvailable } from '../../../modules/sms-reader';
+import { isAvailable as smsReaderAvailable } from '../../../modules/sms-reader';
 import { requestSmsPermission, smsPermissionGranted, syncSmsInbox } from '@/services/sms';
 
 const ITEMS: { title: string; subtitle: string; icon: IconName; href: Href }[][] = [
@@ -38,7 +38,7 @@ export default function SettingsScreen() {
   const enableSms = async () => {
     const granted = await requestSmsPermission();
     setSmsGranted(granted || smsPermissionGranted());
-    if (granted) void syncSmsInbox();
+    if (granted) void syncSmsInbox().catch(() => undefined);
   };
   const ago = status.lastEventAt ? new Date(status.lastEventAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }) : 'never';
   return (

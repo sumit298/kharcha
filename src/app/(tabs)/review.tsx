@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { View } from 'react-native';
+import { Alert, View } from 'react-native';
 
 import { amountLabel } from '@/components/TransactionRow';
 import { space } from '@/components/theme';
@@ -150,6 +150,8 @@ export default function ReviewScreen() {
       await syncSmsInbox();
       setLastSyncedAt(SmsReader.getLastSyncAt() || Date.now());
       setNow(Date.now());
+    } catch (error) {
+      Alert.alert('Sync failed', error instanceof Error ? error.message : 'Kharcha could not finish checking notifications and bank SMS.');
     } finally {
       setSyncing(false);
     }
