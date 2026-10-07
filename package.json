@@ -39,7 +39,7 @@
     "android": "expo run:android",
     "ios": "expo run:ios",
     "web": "expo start --web",
-    "test": "TZ=Asia/Kolkata jest",
+    "test": "EXPO_PUBLIC_USE_RN_FETCH=1 TZ=Asia/Kolkata jest",
     "test:watch": "TZ=Asia/Kolkata jest --watch",
     "typecheck": "tsc --noEmit",
     "lint": "expo lint",

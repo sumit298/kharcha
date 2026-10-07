@@ -76,18 +76,22 @@ export async function setCategory(
     if (!tx) return 0;
     const rule = learnFromCorrection(tx, change, await ruleRepo.list(dbx), now);
     if (rule) await ruleRepo.upsert(dbx, rule);
-    const apply = (t: Transaction): Transaction =>
-      withReasons(
+    const apply = (t: Transaction): Transaction => {
+      const type = change.type ?? t.type;
+      const direction = type === 'income' || type === 'refund' ? 'credit' : type === 'expense' ? 'debit' : t.direction;
+      return withReasons(
         {
           ...t,
           categoryId: change.categoryId,
           subcategoryId: change.subcategoryId,
           categorySource: t.id === id ? 'user' : 'user_rule',
-          type: change.type ?? t.type,
+          type,
+          direction,
         },
         t.reviewReasons.filter((r) => !CATEGORY_REASONS.includes(r)),
         now,
       );
+    };
     await transactionRepo.update(dbx, apply(tx));
     let updated = 1;
     const key = tx.merchantRaw ?? tx.merchantName;
@@ -115,7 +119,12 @@ export async function editTransaction(
   const tx = await transactionRepo.get(db, id);
   if (!tx) return;
   const reasons = patch.merchantName ? tx.reviewReasons.filter((r) => r !== 'unknown_merchant') : tx.reviewReasons;
-  await transactionRepo.update(db, withReasons({ ...tx, ...patch }, reasons, now));
+  const direction = patch.type === 'income' || patch.type === 'refund'
+    ? 'credit'
+    : patch.type === 'expense'
+      ? 'debit'
+      : tx.direction;
+  await transactionRepo.update(db, withReasons({ ...tx, ...patch, direction }, reasons, now));
 }
 
 /** Review: the suspected duplicate really is a duplicate (ignore it) or isn't (keep both). */

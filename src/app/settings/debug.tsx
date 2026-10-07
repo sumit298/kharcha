@@ -1,6 +1,6 @@
 import { Stack } from 'expo-router';
 import { useState } from 'react';
-import { View } from 'react-native';
+import { Alert, View } from 'react-native';
 
 import { space } from '@/components/theme';
 import { Button, Card, EmptyState, Row, Screen, T } from '@/components/ui';
@@ -28,6 +28,8 @@ export default function DebugScreen() {
     try {
       await syncNotifications();
       await syncSmsInbox();
+    } catch (error) {
+      Alert.alert('Sync failed', error instanceof Error ? error.message : 'Kharcha could not finish checking notifications and bank SMS.');
     } finally {
       setSyncing(false);
     }

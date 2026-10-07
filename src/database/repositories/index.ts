@@ -106,6 +106,7 @@ export const accountRepo = {
   },
   async remove(db: SqlExecutor, id: string, now: number): Promise<void> {
     await db.runAsync('UPDATE accounts SET deleted_at = ?, updated_at = ? WHERE id = ?', [now, now, id]);
+    await db.runAsync('UPDATE transactions SET account_id = NULL, updated_at = ? WHERE account_id = ?', [now, id]);
   },
 };
 

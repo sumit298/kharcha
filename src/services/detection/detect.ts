@@ -51,6 +51,9 @@ const REMINDER =
 const STATEMENT =
   /\bstatement (?:for|of|is|has been)\b|\be-?statement\b|\btotal (?:amount )?due\b|\bmin(?:imum)? (?:amount )?due\b|\bbill (?:is |has been )?generated\b/i;
 
+const ORDER_STATUS =
+  /\b(?:order|shipment|delivery)\b[^.\n]{0,60}\b(?:shipped|arriving|delivered|out for delivery|ready|confirmed)\b|\b(?:shipped|arriving|delivered|out for delivery)\b/i;
+
 const FINANCIAL_APPS: ReadonlySet<SourceKind> = new Set(['upi_app', 'bank_app', 'card_app', 'wallet_app']);
 
 const notFinancial = (reason: NonFinancialReason, sensitive = false): DetectionResult => ({
@@ -81,6 +84,7 @@ export function detectFinancial(event: NotificationEvent): DetectionResult {
 
   const direction = detectDirection(text);
   const strongVerb = direction?.strength === 'strong';
+  if (!strongVerb && ORDER_STATUS.test(text)) return notFinancial('no_transaction');
   // An explicit verb plus account details or a reference number is a real alert, even if the
   // bank appended an offer to it.
   const isEvidence = strongVerb && (extractReference(text) !== null || extractAccountHint(text)?.last4 != null);

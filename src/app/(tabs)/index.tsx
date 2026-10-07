@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { RefreshControl, ScrollView, View } from 'react-native';
+import { Alert, RefreshControl, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { TransactionRow } from '@/components/TransactionRow';
@@ -9,6 +9,7 @@ import { Button, Card, Divider, EmptyState, Icon, ProgressBar, Row, SectionTitle
 import { useCategories, useQuery } from '@/hooks/useQuery';
 import { syncNotifications } from '@/services/app';
 import { loadDashboard } from '@/services/queries';
+import { syncSmsInbox } from '@/services/sms';
 import { formatMoney } from '@/utils/money';
 
 import { NotificationListener, isAvailable } from '../../../modules/notification-listener';
@@ -44,7 +45,14 @@ export default function Dashboard() {
 
   const refresh = async () => {
     setRefreshing(true);
-    await syncNotifications().finally(() => setRefreshing(false));
+    try {
+      await syncNotifications();
+      await syncSmsInbox();
+    } catch (error) {
+      Alert.alert('Sync failed', error instanceof Error ? error.message : 'Kharcha could not finish checking notifications and bank SMS.');
+    } finally {
+      setRefreshing(false);
+    }
   };
 
   const safe = data?.safe;
