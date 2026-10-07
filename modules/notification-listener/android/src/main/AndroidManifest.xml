@@ -1,0 +1,15 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+  <application>
+    <!-- Bound by the system once the user grants notification access. Not exported to apps:
+         only the system (holding BIND_NOTIFICATION_LISTENER_SERVICE) can bind it. -->
+    <service
+      android:name="expo.modules.notificationlistener.KharchaNotificationListenerService"
+      android:label="Kharcha"
+      android:exported="true"
+      android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
+      <intent-filter>
+        <action android:name="android.service.notification.NotificationListenerService" />
+      </intent-filter>
+    </service>
+  </application>
+</manifest>
