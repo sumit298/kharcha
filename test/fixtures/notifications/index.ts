@@ -96,6 +96,15 @@ export const FIXTURES: NotificationFixture[] = [
     detect: 'promotional',
   },
   {
+    id: 'paytm.cashback_offer_with_payment_wording',
+    payload: app(
+      PKG.paytm,
+      'Insurance Payment = ₹30 Cashback',
+      'Pay your insurance premium on Paytm with code INS30 and get ₹30 cashback.',
+    ),
+    detect: 'promotional',
+  },
+  {
     id: 'gpay.reward_credited',
     payload: app(PKG.gpay, 'You won ₹15', '₹15 cashback credited to your bank account XX1234'),
     detect: 'financial',

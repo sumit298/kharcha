@@ -37,7 +37,7 @@ const OTP_PATTERNS: RegExp[] = [
 
 /** Marketing language. Transaction alerts with account details still pass (see isEvidence). */
 const PROMOTIONAL =
-  /\bpre-?approved\b|\bapply now\b|\bclick (?:here|now|to)\b|\blimited[- ]period\b|\bhurry\b|\boffer (?:ends|valid)\b|\bt&c\b|\bget (?:up ?to|upto|flat|instant)\b|\bup ?to \d+% off\b|\b\d+% (?:off|cashback)\b|\bavail (?:now|offer|the)\b|\beligible for (?:a |an )?(?:loan|credit|limit)\b|\binstant (?:personal )?loan\b|\bloan (?:of|up ?to)\b|\bcredit limit (?:increase|enhancement)\b|\bwin (?:up ?to|₹|rs)\b|\bexclusive offer\b|\bspecial offer\b/i;
+  /\bpre-?approved\b|\bapply now\b|\bclick (?:here|now|to)\b|\blimited[- ]period\b|\bhurry\b|\boffer (?:ends|valid)\b|\bt&c\b|\bget (?:up ?to|upto|flat|instant)\b|\b(?:get|earn|enjoy|claim)\s+(?:(?:up ?to|upto|flat|instant)\s+)?(?:₹|rs\.?|inr)?\s*[\d,]+(?:\.\d{1,2})?\s+(?:cashback|reward|bonus)\b|\bup ?to \d+% off\b|\b\d+% (?:off|cashback)\b|\bavail (?:now|offer|the)\b|\beligible for (?:a |an )?(?:loan|credit|limit)\b|\binstant (?:personal )?loan\b|\bloan (?:of|up ?to)\b|\bcredit limit (?:increase|enhancement)\b|\bwin (?:up ?to|₹|rs)\b|\bexclusive offer\b|\bspecial offer\b/i;
 
 const COLLECT_REQUEST =
   /\bhas requested\b|\brequested (?:money|a payment|payment|₹|rs|inr)\b|\bpayment request\b|\bcollect request\b|\bis requesting\b|\bsent you a (?:payment |money )?request\b|\bwants you to pay\b|\brequest(?:ing)? (?:for )?(?:₹|rs\.?|inr)/i;

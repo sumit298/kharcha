@@ -11,7 +11,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#0A32A7",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
@@ -27,6 +27,12 @@
       "expo-router",
       "expo-sharing"
     ],
-    "scheme": "kharcha"
+    "scheme": "kharcha",
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "680e2273-232f-42b5-9cd7-81260e37b912"
+      }
+    }
   }
 }

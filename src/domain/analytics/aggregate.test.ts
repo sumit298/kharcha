@@ -5,6 +5,7 @@ import { monthRange } from '@/utils/dates';
 import {
   compareWithPreviousMonth,
   dailySeries,
+  dailyTransactionTotals,
   incomeVsExpense,
   largestExpenses,
   spendingByCategory,
@@ -186,6 +187,25 @@ describe('dailySeries', () => {
   it('returns [] for an empty or inverted range', () => {
     expect(dailySeries([], { from: at(2026, 9, 2), to: at(2026, 9, 2) })).toEqual([]);
     expect(dailySeries([], { from: at(2026, 9, 3), to: at(2026, 9, 2) })).toEqual([]);
+  });
+});
+
+describe('dailyTransactionTotals', () => {
+  it('returns debit and credit totals per day while excluding transfers and ignored rows', () => {
+    const range = monthRange(at(2026, 9, 1));
+    const txs = [
+      makeTransaction({ amountMinor: 10000, occurredAt: at(2026, 9, 1) }),
+      makeTransaction({ type: 'income', direction: 'credit', amountMinor: 5000, occurredAt: at(2026, 9, 1) }),
+      makeTransaction({ type: 'refund', amountMinor: 2000, occurredAt: at(2026, 9, 2) }),
+      makeTransaction({ type: 'transfer', direction: 'debit', amountMinor: 90000, occurredAt: at(2026, 9, 2) }),
+      makeTransaction({ status: 'ignored', amountMinor: 80000, occurredAt: at(2026, 9, 3) }),
+    ];
+
+    expect(dailyTransactionTotals(txs, range).slice(0, 3)).toEqual([
+      { dayKey: '2026-09-01', from: at(2026, 9, 1), debitMinor: 10000, creditMinor: 5000 },
+      { dayKey: '2026-09-02', from: at(2026, 9, 2), debitMinor: 0, creditMinor: 2000 },
+      { dayKey: '2026-09-03', from: at(2026, 9, 3), debitMinor: 0, creditMinor: 0 },
+    ]);
   });
 });
 
