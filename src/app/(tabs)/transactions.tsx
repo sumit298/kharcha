@@ -9,9 +9,16 @@ import { transactionRepo, type TransactionFilter } from '@/database/repositories
 import { useCategories, useQuery } from '@/hooks/useQuery';
 import type { Transaction, TransactionType } from '@/types';
 import { addDays, addMonths, dayKey, monthRange, startOfDay } from '@/utils/dates';
+import { formatMoney } from '@/utils/money';
 
 type Period = 'month' | 'last_month' | '7d' | 'all';
 type Kind = 'all' | 'expense' | 'income' | 'transfer';
+
+type DayGroup = {
+  items: Transaction[];
+  debitMinor: number;
+  creditMinor: number;
+};
 
 const KIND_TYPES: Record<Kind, TransactionType[] | undefined> = {
   all: undefined,
@@ -34,9 +41,15 @@ function dayLabel(key: string, now: number): string {
   return new Date(y as number, (m as number) - 1, d).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' }).toUpperCase();
 }
 
+function numericParam(value: string | undefined): number | undefined {
+  if (value === undefined) return undefined;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : undefined;
+}
+
 export default function TransactionsScreen() {
   const t = useTheme();
-  const params = useLocalSearchParams<{ merchant?: string; sourceApp?: string; categoryId?: string }>();
+  const params = useLocalSearchParams<{ merchant?: string; sourceApp?: string; categoryId?: string; dayFrom?: string; dayTo?: string }>();
   const categories = useCategories();
   const [search, setSearch] = useState('');
   const [period, setPeriod] = useState<Period>(params.merchant || params.sourceApp ? 'all' : 'month');
@@ -44,9 +57,17 @@ export default function TransactionsScreen() {
   const [categoryId, setCategoryId] = useState<string | undefined>(params.categoryId);
   const [source, setSource] = useState<'all' | 'notification' | 'manual'>('all');
   const [now] = useState(Date.now);
+  const dayFrom = numericParam(params.dayFrom);
+  const dayTo = numericParam(params.dayTo);
+  const selectedDay = dayFrom !== undefined && dayTo !== undefined && dayTo > dayFrom ? { from: dayFrom, to: dayTo } : null;
+  const clearSelectedDay = () => router.setParams({ dayFrom: undefined, dayTo: undefined });
+  const selectPeriod = (next: Period) => {
+    setPeriod(next);
+    if (selectedDay) clearSelectedDay();
+  };
 
   const filter: TransactionFilter = {
-    ...periodRange(period, now),
+    ...(selectedDay ?? periodRange(period, now)),
     search: search.trim() || undefined,
     types: KIND_TYPES[kind],
     categoryId,
@@ -58,12 +79,22 @@ export default function TransactionsScreen() {
   const { data = [] } = useQuery((db) => transactionRepo.list(db, filter), JSON.stringify(filter));
 
   const sections = useMemo(() => {
-    const groups = new Map<string, Transaction[]>();
+    const groups = new Map<string, DayGroup>();
     for (const tx of data) {
       const key = dayKey(tx.occurredAt);
-      groups.set(key, [...(groups.get(key) ?? []), tx]);
+      const group = groups.get(key) ?? { items: [], debitMinor: 0, creditMinor: 0 };
+      group.items.push(tx);
+      if (tx.direction === 'credit') group.creditMinor += tx.amountMinor;
+      else group.debitMinor += tx.amountMinor;
+      groups.set(key, group);
     }
-    return [...groups].map(([key, items]) => ({ key, title: dayLabel(key, now), data: items }));
+    return [...groups].map(([key, group]) => ({
+      key,
+      title: dayLabel(key, now),
+      data: group.items,
+      debitMinor: group.debitMinor,
+      creditMinor: group.creditMinor,
+    }));
   }, [data, now]);
 
   return (
@@ -75,10 +106,19 @@ export default function TransactionsScreen() {
             <Chip label="Clear" icon="close" onPress={() => router.setParams({ merchant: undefined, sourceApp: undefined })} />
           </Row>
         ) : null}
+        {selectedDay ? (
+          <Row style={{ justifyContent: 'space-between' }}>
+            <View style={{ flex: 1 }}>
+              <T variant="label" color="muted">DAY FILTER</T>
+              <T variant="heading" numberOfLines={1}>{new Date(selectedDay.from).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })}</T>
+            </View>
+            <Chip label="Clear" icon="close" onPress={clearSelectedDay} />
+          </Row>
+        ) : null}
         <Field value={search} onChangeText={setSearch} placeholder="Search merchant, UPI ID or note" accessibilityLabel="Search" />
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: space.sm }}>
           {(['month', 'last_month', '7d', 'all'] as Period[]).map((p) => (
-            <Chip key={p} label={{ month: 'This month', last_month: 'Last month', '7d': '7 days', all: 'All time' }[p]} selected={period === p} onPress={() => setPeriod(p)} />
+            <Chip key={p} label={{ month: 'This month', last_month: 'Last month', '7d': '7 days', all: 'All time' }[p]} selected={!selectedDay && period === p} onPress={() => selectPeriod(p)} />
           ))}
           <View style={{ width: 1, backgroundColor: t.border }} />
           {(['all', 'expense', 'income', 'transfer'] as Kind[]).map((k) => (
@@ -101,8 +141,12 @@ export default function TransactionsScreen() {
         contentContainerStyle={{ paddingHorizontal: space.lg, paddingBottom: space.xxl }}
         stickySectionHeadersEnabled
         renderSectionHeader={({ section }) => (
-          <View style={{ backgroundColor: t.bg, paddingTop: space.md, paddingBottom: space.xs }}>
-            <T variant="label" color="faint">{section.title}</T>
+          <View style={{ backgroundColor: t.bg, paddingTop: space.md, paddingBottom: space.xs, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space.sm }}>
+            <T variant="label" color="faint" style={{ flexShrink: 1 }}>{section.title}</T>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm, flexShrink: 1 }}>
+              {section.debitMinor > 0 ? <T variant="caption" color="muted" style={{ fontWeight: '600' }}>Debit {formatMoney(section.debitMinor, 'INR', { paise: 'never' })}</T> : null}
+              {section.creditMinor > 0 ? <T variant="caption" color="positive" style={{ fontWeight: '600' }}>Credit {formatMoney(section.creditMinor, 'INR', { paise: 'never' })}</T> : null}
+            </View>
           </View>
         )}
         ItemSeparatorComponent={Divider}

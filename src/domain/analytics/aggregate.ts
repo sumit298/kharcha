@@ -12,6 +12,7 @@ import {
 
 import {
   indexCategories,
+  isCountedAsIncome,
   isCountedForSpending,
   netSpending,
   spendingContribution,
@@ -55,6 +56,14 @@ export interface DailySpending {
   /** Local start of day. */
   from: number;
   spentMinor: number;
+}
+
+export interface DailyTransactionTotals {
+  dayKey: string;
+  /** Local start of day. */
+  from: number;
+  debitMinor: number;
+  creditMinor: number;
 }
 
 export interface PeriodSpending extends DateRange {
@@ -155,6 +164,24 @@ export function dailySeries(txs: readonly Transaction[], range: DateRange): Dail
   const series: DailySpending[] = [];
   for (let day = startOfDay(range.from); day < range.to; day = addDays(day, 1)) {
     series.push({ dayKey: dayKey(day), from: day, spentMinor: sumSpending(byDay.get(day) ?? []) });
+  }
+  return series;
+}
+
+/** One entry per local day with counted debit and credit totals, zero-filled. Transfers are excluded. */
+export function dailyTransactionTotals(txs: readonly Transaction[], range: DateRange): DailyTransactionTotals[] {
+  if (range.to <= range.from) return [];
+  const counted = txs.filter((tx) => (isCountedForSpending(tx) || isCountedAsIncome(tx)) && isInRange(tx.occurredAt, range));
+  const byDay = groupBy(counted, (tx) => startOfDay(tx.occurredAt));
+  const series: DailyTransactionTotals[] = [];
+  for (let day = startOfDay(range.from); day < range.to; day = addDays(day, 1)) {
+    let debitMinor = 0;
+    let creditMinor = 0;
+    for (const tx of byDay.get(day) ?? []) {
+      if (tx.direction === 'credit') creditMinor += tx.amountMinor;
+      else debitMinor += tx.amountMinor;
+    }
+    series.push({ dayKey: dayKey(day), from: day, debitMinor, creditMinor });
   }
   return series;
 }
